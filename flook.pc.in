@@ -1,13 +1,10 @@
-prefix=@PREFIX@
-exec_prefix=${prefix}
-bindir=${prefix}/@BIN_DIR@
-includedir=${prefix}/@INC_DIR@
-libdir=${prefix}/@LIB_DIR@
+prefix=@CMAKE_INSTALL_PREFIX@
+includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
+libdir=@CMAKE_INSTALL_FULL_LIBDIR@
 
 Name: @PROJECT_NAME@
 Description: Fortran-Lua hook library to control flow from scripting language.
 Version: @PROJECT_VERSION@
 URL: https://github.com/ElectronicStructureLibrary/flook
 Cflags: -I${includedir}
-Libs: -L${libdir} -lflookall -ldl
-
+Libs: @_pc_libs@
