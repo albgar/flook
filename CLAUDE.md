@@ -1,3 +1,7 @@
+## Session handoff
+
+If starting a new session on this project, read `.claude/handoff.md` first — it summarises completed work, open gaps, and suggested next steps.
+
 ## Agent skills
 
 ### Issue tracker
