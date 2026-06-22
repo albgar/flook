@@ -74,7 +74,7 @@ These were noted during the session but not implemented:
 - Dependency chain: `lua-5.3.5` (C) → `LuaFortran` (C + Fortran ISO_C_BINDING) → `aotus` (Fortran) → `flook` (Fortran).
 - The smeka/GNU Make build is still present and functional; it is not being deleted, only supplemented.
 - `docs/` is gitignored except `docs/adr/`. Generated Doxygen output goes to `docs/` and must stay ignored.
-- Domain docs (`CONTEXT.md`, `docs/adr/`) are sparse — `CONTEXT.md` does not exist yet.
+- Domain docs: `CONTEXT.md` exists at the repo root with the canonical vocabulary (luaState, luaTbl, channel, script load, registered function, implementation layers). `docs/adr/` has ADRs 0001–0003.
 
 ---
 
@@ -82,5 +82,4 @@ These were noted during the session but not implemented:
 
 - **`/tdd`** — if adding the quad/extdouble Fortran feature-detection, write the CMake try_compile checks test-first.
 - **`/diagnosing-bugs`** — if the install or shared-library smoke-tests surface issues.
-- **`/domain-modeling`** — to create `CONTEXT.md` with the domain vocabulary (luaState, luaTbl, flu_binding, aotus, flook) before further refactoring.
 - **`/code-review`** — run over `CMakeLists.txt` before opening a PR to `master`.
