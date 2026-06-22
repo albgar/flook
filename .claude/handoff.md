@@ -44,8 +44,8 @@ Committed in `27f9fde`. New/modified files:
 **Build verified:**
 ```
 cmake -S . -B build
-cmake --build build --parallel 4
-ctest --test-dir build          # 5/5 passed
+cmake --build build --parallel 8   # -j8 clean after race-condition fix (e7edf15)
+ctest --test-dir build              # 5/5 passed
 ```
 
 ---
@@ -53,6 +53,8 @@ ctest --test-dir build          # 5/5 passed
 ## Known gaps / next tasks
 
 These were noted during the session but not implemented:
+
+0. ~~**Parallel build race on test `.mod` files**~~ — Fixed in `e7edf15`. `tst_passreturn` and `tst_aot_passreturn` both defined `module m_array`; gave each test its own `Fortran_MODULE_DIRECTORY` under `modules/tests/<name>/`.
 
 1. **Quad / extended-double precision in aotus** — `CMakeLists.txt` uses the dummy stub modules. The real `aot_quadruple_*` and `aot_extdouble_*` sources require Fortran `try_compile` checks (analogous to what aotus's `wscript` does via `fortran_language.supports_quad_kind`). See the comment in `CMakeLists.txt` at the `aotus_objs` target.
 
