@@ -77,7 +77,7 @@ add_library(lua_objs OBJECT
     ${_lua_src}/linit.c
 )
 target_compile_definitions(lua_objs PRIVATE
-    LUA_ANSI
+    LUA_USE_C89
     $<$<BOOL:${_lua_use_posix}>:LUA_USE_POSIX>
 )
 target_include_directories(lua_objs PUBLIC $<BUILD_INTERFACE:${_lua_src}>)
@@ -232,6 +232,7 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/flook.inc"
 install(DIRECTORY "${CMAKE_Fortran_MODULE_DIRECTORY}/"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
     FILES_MATCHING PATTERN "*.mod" PATTERN "*.MOD"
+    PATTERN "tests" EXCLUDE
 )
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/flook.pc"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig"
