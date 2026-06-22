@@ -76,7 +76,8 @@ contains
     call tbl%open('test.tmp.a',lvls = lvls)
     print*,'opened: ',lvls
     call tbl%set('size', 2)
-    call tbl%close(lvls=2)
+    lvls = 2
+    call tbl%close(lvls=lvls)
     call tbl%set('a', 1.5)
     call tbl%close_tree()
 
@@ -98,16 +99,17 @@ contains
     type(luaState) :: lua
     type(luaTbl) :: tbl
 
-    integer :: i
+    integer :: i, lvls
     real :: tmp
 
     ! Copy the c-pointer to the lua-state
     call lua%init(state)
 
-    ! Open table named 
+    ! Open table named
     tbl = lua%table('struct.test.tmp.a')
     call tbl%get('size', i)
-    call tbl%close(lvls=2)
+    lvls = 2
+    call tbl%close(lvls=lvls)
     call tbl%get('a', tmp)
     print *, 'Size: ',i
     print *, 'tmp: ',tmp

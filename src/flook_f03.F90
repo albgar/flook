@@ -864,7 +864,7 @@ contains
   !> @cond SHOW_PRIVATE
 
   !> @isee luaTbl::init
-  subroutine tbl_init_(tbl,state)
+  subroutine tbl_init_(tbl,lua)
     class(luaTbl), intent(inout) :: tbl
     type(luaState), intent(in), target :: lua
 
