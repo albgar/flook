@@ -1,85 +1,83 @@
 # Handoff: flook CMake refactoring
 
 **Repo:** `https://github.com/ElectronicStructureLibrary/flook`
-**Local paths:** `/Users/albertog/code/GITLAB/flook` (primary) · `/Users/albertog/G/flook` (mirror/worktree)
+**Local paths:** `/Users/albertog/code/GITLAB/flook` (primary) · `/Users/albertog/G/flook` (symlink — never copy between them)
 **Active branch:** `main--ag-test` (base: `main`)
-**Date:** 2026-06-21
+**Date:** 2026-06-22
 
 ---
 
 ## What was done this session
 
-### 1. Agent skills scaffolding
-Ran `/setup-matt-pocock-skills`. Configuration lives in `.claude/agents/` (issue tracker: local markdown under `.scratch/`, default triage labels, single-context domain docs). Registered in `CLAUDE.md`. Committed in `2d04697`.
+### 1. Domain model (`CONTEXT.md`)
+Ran `/domain-modeling`. Created `CONTEXT.md` at the repo root with the canonical vocabulary for the project. Key terms: `luaState`, `luaTbl`, `Lua environment`, `channel`, `script load`, `registered function`, and the four implementation layers. Committed in `0537c16`.
 
-### 2. CMake infrastructure design
-Ran `/grill-with-docs` to drive a structured design session. All decisions and their rationale are recorded in ADRs — do not re-litigate them without reading these first:
+### 2. Code review of CMake build
+Ran `/code-review high` over the full `main--ag-test` branch diff. Eight finder angles, ten candidates surfaced and verified. See the session transcript for the full JSON output. Three confirmed high/medium issues were fixed immediately; five were deferred (tracked in memory — see `.claude/projects/.../memory/project-cmake-review-open.md`).
 
-- `docs/adr/0001-cmake-as-primary-build-system.md`
-- `docs/adr/0002-bundled-lua-and-inline-aotus-cmake.md`
-- `docs/adr/0003-libflookall-combined-archive.md`
+### 3. Code-review fixes (`38ca7fe`)
+Three confirmed bugs fixed in `CMakeLists.txt` and `flook.pc.in`:
 
-**Design summary** (see ADRs for why):
-- CMake 3.14 minimum
-- Lua 5.3.5 always bundled from `aotus/external/lua-5.3.5/`
-- aotus sources compiled inline in flook's CMake tree (no CMakeLists.txt added to submodule)
-- All layers built as OBJECT libraries → merged into a single `libflook.a` / `libflook.so`
-- `libflookall.a` kept as a file-copy alias of `libflook.a` for backward compat
-- `FLOOK_OO` option (default OFF) selects `flook.F90` vs `flook_f03.F90`
-- `BUILD_SHARED_LIBS` (default OFF)
-- CTest wired up for all 5 tests
+| Fix | Location |
+|-----|----------|
+| `LUA_ANSI` → `LUA_USE_C89` (renamed in Lua 5.2; was a no-op) | `CMakeLists.txt` line 80 |
+| Add `PATTERN "tests" EXCLUDE` to module install rule (prevented private test `.mod` files like `m_array` from being installed into system include dir) | `CMakeLists.txt` line 235 |
+| Revert `flook.pc.in` to prefix-relative paths (`${prefix}/@CMAKE_INSTALL_INCLUDEDIR@`) — fixes smeka sed substitution breakage and `--define-prefix` relocation | `flook.pc.in` lines 2–3 |
 
-### 3. Implementation
-Committed in `27f9fde`. New/modified files:
+Build verified: 5/5 tests pass (default build).
 
-| File | Notes |
-|---|---|
-| `CMakeLists.txt` | Root build file — single file, no subdirectories |
-| `flook.inc.in` | `configure_file` template replacing the Makefile echo chain |
-| `cmake/flook-config.cmake.in` | `find_package(flook)` support |
-| `flook.pc.in` | Rewritten to use `@CMAKE_INSTALL_*` vars; `Libs: -lflook` not `-lflookall` |
-| `docs/adr/0001–0003` | Decision records |
-| `.gitignore` | Changed `docs/` → `docs/*` + `!docs/adr` so ADRs are tracked |
+### 4. `FLOOK_OO=ON` build fixes (`9329c94`)
+Three pre-existing bugs found and fixed when smoke-testing the F03 variant:
 
-**Build verified:**
-```
-cmake -S . -B build
-cmake --build build --parallel 8   # -j8 clean after race-condition fix (e7edf15)
-ctest --test-dir build              # 5/5 passed
-```
+| Fix | File | Detail |
+|-----|------|--------|
+| Dummy argument name mismatch | `src/flook_f03.F90:867` | `tbl_init_` declared arg `state` but body used `lua`; renamed arg |
+| Literal integer to `intent(inout)` dummy | `src/test/tst_tbl_f03.f90:79,110` | `tbl%close(lvls=2)` → use local variable |
+| Procedural tests guard | `CMakeLists.txt:259` | Wrapped non-OO tests in `if(NOT FLOOK_OO)` — `flook_f03.F90` only exports type-bound procedures, not standalone generics |
+
+Build verified: 3/3 f03 tests pass (`FLOOK_OO=ON`); 5/5 procedural tests still pass (`FLOOK_OO=OFF`).
+
+All commits pushed to `ag/main--ag-test`.
 
 ---
 
 ## Known gaps / next tasks
 
-These were noted during the session but not implemented:
+1. **Quad / extended-double precision in aotus** — `CMakeLists.txt` uses dummy stub modules. The real `aot_quadruple_*` and `aot_extdouble_*` sources require Fortran `try_compile` checks (analogous to aotus's `wscript`). See comment in `CMakeLists.txt` at the `aotus_objs` target.
 
-0. ~~**Parallel build race on test `.mod` files**~~ — Fixed in `e7edf15`. `tst_passreturn` and `tst_aot_passreturn` both defined `module m_array`; gave each test its own `Fortran_MODULE_DIRECTORY` under `modules/tests/<name>/`.
-
-1. **Quad / extended-double precision in aotus** — `CMakeLists.txt` uses the dummy stub modules. The real `aot_quadruple_*` and `aot_extdouble_*` sources require Fortran `try_compile` checks (analogous to what aotus's `wscript` does via `fortran_language.supports_quad_kind`). See the comment in `CMakeLists.txt` at the `aotus_objs` target.
-
-2. **CI** — `.travis.yml` exists but is stale. A GitHub Actions workflow using the new CMake build would be the natural next step.
+2. **CI** — `.travis.yml` exists but is stale. A GitHub Actions workflow using the new CMake build is the natural next step.
 
 3. **Install smoke-test** — `cmake --install build --prefix /tmp/flook-install` has not been verified yet.
 
-4. **`BUILD_SHARED_LIBS=ON` smoke-test** — the PIC path is plumbed but was not exercised.
+4. **`BUILD_SHARED_LIBS=ON` smoke-test** — PIC path is plumbed but was not exercised.
 
-5. **`FLOOK_OO=ON` smoke-test** — the F03 variant and its three tests were not exercised.
+5. **Deferred code-review findings** — five low-severity items remain open (see memory `project-cmake-review-open.md`). Most notable: `SameMajorVersion` for a 0.x library (issue 5), and the `mkstemp` check missing `<unistd.h>` (issue 6).
+
+6. **PR to `master`** — the branch is ready for review; a `/code-review` pass was completed and fixes applied. Consider opening a PR.
+
+---
+
+## Important non-obvious facts
+
+- **`FLOOK_OO` API split**: `flook_f03.F90` only exports `luaState`, `luaTbl`, and `len` as standalone publics — all other procedures are type-bound. The procedural API (`lua_run`, `lua_table`, etc.) does not exist in the OO module. Any new test or consumer code must use the OO style (`lua%run(...)`) when built with `FLOOK_OO=ON`. See memory `project-flook-oo-api-split.md`.
+
+- **smeka is a parallel build path**: the GNU Make / smeka build is still present and functional alongside CMake. Changes to `flook.pc.in` must be compatible with smeka's sed-based substitution in `smeka/Makefile.pkgconfig` (uses short-form `@CMAKE_INSTALL_INCLUDEDIR@`, not `FULL_` variants).
+
+- **Repo paths**: `/Users/albertog/G/flook` is a symlink to `/Users/albertog/code/GITLAB/flook`. Never copy files between them.
 
 ---
 
 ## Repo context
 
-- **flook** is a Fortran library that embeds Lua 5.3.5 via the `aotus` Fortran-Lua binding layer (git submodule at `aotus/`).
-- Dependency chain: `lua-5.3.5` (C) → `LuaFortran` (C + Fortran ISO_C_BINDING) → `aotus` (Fortran) → `flook` (Fortran).
-- The smeka/GNU Make build is still present and functional; it is not being deleted, only supplemented.
+- **flook** is a Fortran library embedding Lua 5.3.5 via the `aotus` Fortran-Lua binding layer (git submodule at `aotus/`).
+- Dependency chain: `lua-5.3.5` (C) → `LuaFortran` / `flu_binding` (Fortran ISO_C_BINDING) → `aotus` (Fortran) → `flook` (Fortran).
+- Domain vocabulary: `CONTEXT.md` at repo root. ADRs 0001–0003 at `docs/adr/`.
 - `docs/` is gitignored except `docs/adr/`. Generated Doxygen output goes to `docs/` and must stay ignored.
-- Domain docs: `CONTEXT.md` exists at the repo root with the canonical vocabulary (luaState, luaTbl, channel, script load, registered function, implementation layers). `docs/adr/` has ADRs 0001–0003.
 
 ---
 
 ## Suggested skills
 
-- **`/tdd`** — if adding the quad/extdouble Fortran feature-detection, write the CMake try_compile checks test-first.
+- **`/tdd`** — if adding quad/extdouble Fortran feature-detection, write the `try_compile` checks test-first.
 - **`/diagnosing-bugs`** — if the install or shared-library smoke-tests surface issues.
-- **`/code-review`** — run over `CMakeLists.txt` before opening a PR to `master`.
+- **`/code-review`** — run before opening the PR to `master`.
