@@ -257,6 +257,12 @@ if(FLOOK_BUILD_TESTS)
 
     foreach(_t tst_passreturn tst_tbl tst_tbl_ptr tst_exp_flook tst_aot_passreturn)
         add_executable(${_t} ${_tdir}/${_t}.f90)
+        # Each test gets its own module output dir so locally-defined modules
+        # (e.g. m_array defined in both tst_passreturn and tst_aot_passreturn)
+        # don't race to write the same .mod file under parallel builds.
+        set_target_properties(${_t} PROPERTIES
+            Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/modules/tests/${_t}"
+        )
         target_link_libraries(${_t} PRIVATE flook)
         add_test(NAME ${_t} COMMAND ${_t} WORKING_DIRECTORY "${_tdir}")
     endforeach()
@@ -264,6 +270,9 @@ if(FLOOK_BUILD_TESTS)
     if(FLOOK_OO)
         foreach(_t tst_passreturn_f03 tst_tbl_f03 tst_exp_flook_f03)
             add_executable(${_t} ${_tdir}/${_t}.f90)
+            set_target_properties(${_t} PROPERTIES
+                Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/modules/tests/${_t}"
+            )
             target_link_libraries(${_t} PRIVATE flook)
             add_test(NAME ${_t} COMMAND ${_t} WORKING_DIRECTORY "${_tdir}")
         endforeach()
